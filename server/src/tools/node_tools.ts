@@ -29,6 +29,12 @@ interface ListNodesParams {
   parent_path: string;
 }
 
+interface InstanceSceneParams {
+  scene_path: string;
+  parent_path: string;
+  instance_name?: string;
+}
+
 /**
  * Definition for node tools - operations that manipulate nodes in the scene tree
  */
@@ -158,6 +164,36 @@ export const nodeTools: MCPTool[] = [
         return `Children of node at ${parent_path}:\n\n${formattedChildren}`;
       } catch (error) {
         throw new Error(`Failed to list nodes: ${(error as Error).message}`);
+      }
+    },
+  },
+
+  {
+    name: 'instance_scene',
+    description: 'Instance an existing scene file into the current scene tree',
+    parameters: z.object({
+      scene_path: z.string()
+        .describe('Path to the scene file to instance (e.g. "res://scenes/Player.tscn")'),
+      parent_path: z.string()
+        .describe('Path to the parent node where the scene will be instanced (e.g. "/root", "/root/MainScene")'),
+      instance_name: z.string()
+        .optional()
+        .describe('Optional name for the instance (uses scene name if not provided)'),
+    }),
+    execute: async ({ scene_path, parent_path, instance_name }: InstanceSceneParams): Promise<string> => {
+      const godot = getGodotConnection();
+      
+      try {
+        const result = await godot.sendCommand<CommandResult>('instance_scene', {
+          scene_path,
+          parent_path,
+          instance_name: instance_name || '',
+        });
+        
+        const nameInfo = instance_name ? ` with name "${instance_name}"` : '';
+        return `Successfully instanced scene from ${scene_path} at ${result.instance_path}${nameInfo}`;
+      } catch (error) {
+        throw new Error(`Failed to instance scene: ${(error as Error).message}`);
       }
     },
   },
